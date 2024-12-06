@@ -1,0 +1,55 @@
+// Use BallDon'tLie API
+
+const team_to_API_key_mapping = {
+  hawks: 1,
+  celtics: 2,
+  nets: 3,
+  hornets: 4,
+  bulls: 5,
+  cavaliers: 6,
+  mavericks: 7,
+  nuggets: 8,
+  pistons: 9,
+  warriors: 10,
+  rockets: 11,
+  pacers: 12,
+  clippers: 13,
+  lakers: 14,
+  grizzlies: 15,
+  heat: 16,
+  bucks: 17,
+  timberwolves: 18,
+  pelicans: 19,
+  knicks: 20,
+  thunder: 21,
+  magic: 22,
+  "76ers": 23,
+  suns: 24,
+  blazers: 25,
+  kings: 26,
+  spurs: 27,
+  raptors: 28,
+  jazz: 29,
+  wizards: 30,
+};
+
+chrome.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
+  if (changeInfo.status === "complete" && tab.url) {
+    // Extension only supports Fanduel NBA odds for now
+    const fanduel_nba_prefix =
+      "https://md.sportsbook.fanduel.com/basketball/nba/";
+
+    if (tab.url.startsWith(fanduel_nba_prefix)) {
+      // Regex to grab info
+      // Sample URL will look like https://sportsbook.fanduel.com/basketball/nba/indiana-pacers-@-los-angeles-lakers-33130540
+      const capturingRegex =
+        /nba\/(?<away_loc>.*)-(?<away_team>.*)-@-(?<home_loc>.*)-(?<home_team>.*)-/;
+      const found = tab.url.match(capturingRegex);
+
+      const { away_loc, away_team, home_loc, home_team } = found.groups;
+      console.log(away_loc);
+
+      chrome.tabs.sendMessage(tabId, {});
+    }
+  }
+});

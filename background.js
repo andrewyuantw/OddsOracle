@@ -33,13 +33,18 @@ const team_to_API_key_mapping = {
   wizards: 30,
 };
 
+// Extension only supports Fanduel NBA odds for now
+const fanduel_nba_prefix_regex = new RegExp(
+  "https://.*.sportsbook.fanduel.com/basketball/nba/",
+);
+const player_points_suffix = "?tab=player-points";
+
 chrome.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
   if (changeInfo.status === "complete" && tab.url) {
-    // Extension only supports Fanduel NBA odds for now
-    const fanduel_nba_prefix =
-      "https://md.sportsbook.fanduel.com/basketball/nba/";
-
-    if (tab.url.startsWith(fanduel_nba_prefix)) {
+    if (tab.url.endsWith(player_points_suffix)) {
+      console.log("Navigated to player points tab");
+      chrome.tabs.sendMessage(tabId, "PLAYERPOINTS");
+    } else if (fanduel_nba_prefix_regex.test(tab.url)) {
       // Regex to grab info
       // Sample URL will look like https://sportsbook.fanduel.com/basketball/nba/indiana-pacers-@-los-angeles-lakers-33130540
       const capturingRegex =
@@ -49,7 +54,7 @@ chrome.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
       const { away_loc, away_team, home_loc, home_team } = found.groups;
       console.log(away_loc);
 
-      chrome.tabs.sendMessage(tabId, {});
+      chrome.tabs.sendMessage(tabId, "MAIN");
     }
   }
 });

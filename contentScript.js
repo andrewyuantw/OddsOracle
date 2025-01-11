@@ -12,6 +12,10 @@ const ESPN_GET_ALL_PLAYERS_URL =
   "https://sports.core.api.espn.com/v3/sports/basketball/nba/athletes?limit=20000";
 const ESPN_GET_STATS_FROM_ID_URL = `https://sports.core.api.espn.com/v2/sports/basketball/leagues/nba/seasons/${CURRENT_SEASON}/types/2/athletes/`;
 
+// ESPN API Constants
+const OFFENSE_STATS_INDEX = 2;
+const PPG_STATS_INDEX = 30;
+
 // Need to use intervals because FanDuel does not load information instantly
 // Use interval to check if info is loaded periodically
 chrome.runtime.onMessage.addListener(async (obj, sender, response) => {
@@ -35,13 +39,16 @@ chrome.runtime.onMessage.addListener(async (obj, sender, response) => {
     const intervalId = setInterval(async () => {
       const playerElements = document.querySelectorAll(TEN_POINTS_ARIA);
       if (playerElements.length > 0) {
-        const playerNames = [...playerElements].map(
-          (div) => div.ariaLabel.split(", ")[1],
-        );
         clearInterval(intervalId);
-
-        // Process the player names and get stats
-        playerNames.forEach((playerName) => processPlayerPoints(playerName))
+        [...playerElements].forEach(async (div) => {
+          const playerName = div.ariaLabel.split(", ")[1];
+          const ppg = await getPlayerPPG(playerName);
+          var playerNameDivParent =
+            div.parentElement.parentElement.parentElement;
+          var playerNameDiv =
+            playerNameDivParent.children[0].children[1].children[0].children[0];
+          playerNameDiv.innerText = playerName + ": Average ppg " + ppg;
+        });
       }
       counter += 1;
       if (counter > MAX_RETRIES) {
@@ -57,12 +64,14 @@ function processOdds(oddsElement) {
   console.log(oddsElement.innerHTML);
 }
 
-function processPlayerPoints(playerName) {
-  console.log(playerName);
+async function getPlayerPPG(playerName) {
+  playerName = playerName.split(" ");
   // Once scraped player, find ESPN id from name and then stats from ID
-  //var id = await GetESPNIdFromPlayerName("LeBron", "James");
-  //console.log(id);
-  //await getStatsFromESPNPlayerID(id);
+  var id = await GetESPNIdFromPlayerName(playerName[0], playerName[1]);
+  var statsJson = await getStatsFromESPNPlayerID(id);
+  return statsJson["splits"]["categories"][OFFENSE_STATS_INDEX]["stats"][
+    PPG_STATS_INDEX
+  ]["displayValue"];
 }
 
 async function GetESPNIdFromPlayerName(playerFirstName, playerLastName) {
@@ -86,6 +95,5 @@ async function getStatsFromESPNPlayerID(id) {
     options,
   );
   const json = await resp.json();
-  console.log(json);
   return json;
 }

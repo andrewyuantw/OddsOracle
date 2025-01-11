@@ -1,6 +1,8 @@
 // Aria Labels
 const SPREAD_BETTING_ARIA = 'div[aria-label*="Spread Betting,"]';
 const TEN_POINTS_ARIA = 'div[aria-label*="To Score 10+ Points,"]';
+const FIFTEEN_POINTS_ARIA = 'div[aria-label*="To Score 15+ Points,"]';
+const FIFTEEN_POINTS_ARIA_EXPAND = 'div[aria-label*="To Score 15+ Points"]';
 
 // Numberic Constants
 const REFRESH_INTERVAL = 2000;
@@ -37,19 +39,18 @@ chrome.runtime.onMessage.addListener(async (obj, sender, response) => {
   } else if (obj == "PLAYERPOINTS") {
     var counter = 0;
     const intervalId = setInterval(async () => {
-      const playerElements = document.querySelectorAll(TEN_POINTS_ARIA);
-      if (playerElements.length > 0) {
+      // Set up onClick events for point sections
+      const fifteenPointsExpand = document.querySelectorAll(
+        FIFTEEN_POINTS_ARIA_EXPAND,
+      );
+      if (fifteenPointsExpand.length > 0) {
         clearInterval(intervalId);
-        [...playerElements].forEach(async (div) => {
-          const playerName = div.ariaLabel.split(", ")[1];
-          const ppg = await getPlayerPPG(playerName);
-          var playerNameDivParent =
-            div.parentElement.parentElement.parentElement;
-          var playerNameDiv =
-            playerNameDivParent.children[0].children[1].children[0].children[0];
-          playerNameDiv.innerText = playerName + ": Average ppg " + ppg;
+        fifteenPointsExpand[0].addEventListener("click", function () {
+          updatePageWithPlayerPPGInfo(FIFTEEN_POINTS_ARIA);
         });
+        updatePageWithPlayerPPGInfo(TEN_POINTS_ARIA);
       }
+
       counter += 1;
       if (counter > MAX_RETRIES) {
         console.log("couldn't find div");
@@ -62,6 +63,29 @@ chrome.runtime.onMessage.addListener(async (obj, sender, response) => {
 function processOdds(oddsElement) {
   // To add
   console.log(oddsElement.innerHTML);
+}
+
+async function updatePageWithPlayerPPGInfo(ariaLabel) {
+  var counter = 0;
+  const intervalId = setInterval(async () => {
+    const playerElements = document.querySelectorAll(ariaLabel);
+    if (playerElements.length > 0) {
+      clearInterval(intervalId);
+      [...playerElements].forEach(async (div) => {
+        const playerName = div.ariaLabel.split(", ")[1];
+        const ppg = await getPlayerPPG(playerName);
+        var playerNameDivParent = div.parentElement.parentElement.parentElement;
+        var playerNameDiv =
+          playerNameDivParent.children[0].children[1].children[0].children[0];
+        playerNameDiv.innerText = playerName + ": Average ppg " + ppg;
+      });
+    }
+    counter += 1;
+    if (counter > MAX_RETRIES) {
+      console.log("couldn't find div");
+      clearInterval(intervalId);
+    }
+  }, REFRESH_INTERVAL);
 }
 
 async function getPlayerPPG(playerName) {

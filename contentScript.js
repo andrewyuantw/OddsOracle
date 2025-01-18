@@ -37,28 +37,48 @@ chrome.runtime.onMessage.addListener(async (obj, sender, response) => {
       }
     }, REFRESH_INTERVAL);
   } else if (obj == "PLAYERPOINTS") {
-    var counter = 0;
-    const intervalId = setInterval(async () => {
-      // Set up onClick events for point sections
-      const fifteenPointsExpand = document.querySelectorAll(
-        FIFTEEN_POINTS_ARIA_EXPAND,
-      );
-      if (fifteenPointsExpand.length > 0) {
-        clearInterval(intervalId);
-        fifteenPointsExpand[0].addEventListener("click", function () {
-          updatePageWithPlayerPPGInfo(FIFTEEN_POINTS_ARIA);
-        });
-        updatePageWithPlayerPPGInfo(TEN_POINTS_ARIA);
-      }
-
-      counter += 1;
-      if (counter > MAX_RETRIES) {
-        console.log("couldn't find div");
-        clearInterval(intervalId);
-      }
-    }, REFRESH_INTERVAL);
+    processPlayerStats(
+      "Points",
+      [15, 20, 25, 30, 35, 40, 45],
+      TEN_POINTS_ARIA,
+      FIFTEEN_POINTS_ARIA_EXPAND,
+    );
   }
 });
+
+function processPlayerStats(
+  METRIC,
+  metricLevels,
+  INITIAL_LOAD_ARIA,
+  REST_OF_PAGE_ARIA,
+) {
+  var counter = 0;
+  const intervalId = setInterval(async () => {
+    // Set up onClick events for point sections
+    const restOfPage = document.querySelectorAll(REST_OF_PAGE_ARIA);
+    // If page finished loading (point expanders loaded)
+    if (restOfPage.length > 0) {
+      clearInterval(intervalId);
+      metricLevels.forEach((metricNumber) => {
+        aria = `div[aria-label*="To Score ${metricNumber}+ ${METRIC},"]`;
+        aria_expand = `div[aria-label*="To Score ${metricNumber}+ ${METRIC}"]`;
+        pointDiv = document.querySelectorAll(aria_expand)[0];
+        pointDiv.addEventListener("click", function () {
+          updatePageWithPlayerPPGInfo(
+            `div[aria-label*="To Score ${metricNumber}+ ${METRIC},"]`,
+          );
+        });
+      });
+      updatePageWithPlayerPPGInfo(INITIAL_LOAD_ARIA);
+    }
+
+    counter += 1;
+    if (counter > MAX_RETRIES) {
+      console.log("couldn't find div");
+      clearInterval(intervalId);
+    }
+  }, REFRESH_INTERVAL);
+}
 
 function processOdds(oddsElement) {
   // To add

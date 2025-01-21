@@ -3,6 +3,7 @@ const SPREAD_BETTING_ARIA = 'div[aria-label*="Spread Betting,"]';
 const TEN_POINTS_ARIA = 'div[aria-label*="To Score 10+ Points,"]';
 const FIFTEEN_POINTS_ARIA = 'div[aria-label*="To Score 15+ Points,"]';
 const FIFTEEN_POINTS_ARIA_EXPAND = 'div[aria-label*="To Score 15+ Points"]';
+const ONE_MADE_THREE_ARIA = 'div[aria-label*="1+ Made Threes,"]';
 
 // Numberic Constants
 const REFRESH_INTERVAL = 2000;
@@ -16,7 +17,8 @@ const ESPN_GET_STATS_FROM_ID_URL = `https://sports.core.api.espn.com/v2/sports/b
 
 // ESPN API Constants
 const OFFENSE_STATS_INDEX = 2;
-const PPG_STATS_INDEX = 30;
+const PPG_NAME = "PPG";
+const AVG_THREES_NAME = "A3PM";
 
 // Need to use intervals because FanDuel does not load information instantly
 // Use interval to check if info is loaded periodically
@@ -38,38 +40,53 @@ chrome.runtime.onMessage.addListener(async (obj, sender, response) => {
     }, REFRESH_INTERVAL);
   } else if (obj == "PLAYERPOINTS") {
     processPlayerStats(
+      "To Score ",
+      "",
       "Points",
       [15, 20, 25, 30, 35, 40, 45],
       TEN_POINTS_ARIA,
-      FIFTEEN_POINTS_ARIA_EXPAND,
+      PPG_NAME,
+    );
+  } else if (obj == "PLAYERTHREES") {
+    processPlayerStats(
+      "",
+      "Made ",
+      "Threes",
+      [2, 3, 4, 5, 6, 7, 8],
+      ONE_MADE_THREE_ARIA,
+      AVG_THREES_NAME,
     );
   }
 });
 
 function processPlayerStats(
+  firstVerb,
+  secondVerb,
   METRIC,
   metricLevels,
   INITIAL_LOAD_ARIA,
-  REST_OF_PAGE_ARIA,
+  ESPN_STAT_IDENTIFIER,
 ) {
   var counter = 0;
   const intervalId = setInterval(async () => {
     // Set up onClick events for point sections
-    const restOfPage = document.querySelectorAll(REST_OF_PAGE_ARIA);
+    const restOfPage = document.querySelectorAll(INITIAL_LOAD_ARIA);
     // If page finished loading (point expanders loaded)
     if (restOfPage.length > 0) {
       clearInterval(intervalId);
       metricLevels.forEach((metricNumber) => {
-        aria = `div[aria-label*="To Score ${metricNumber}+ ${METRIC},"]`;
-        aria_expand = `div[aria-label*="To Score ${metricNumber}+ ${METRIC}"]`;
+        aria = `div[aria-label*="${firstVerb}${metricNumber}+ ${secondVerb}${METRIC},"]`;
+        aria_expand = `div[aria-label*="${firstVerb}${metricNumber}+ ${secondVerb}${METRIC}"]`;
         pointDiv = document.querySelectorAll(aria_expand)[0];
         pointDiv.addEventListener("click", function () {
-          updatePageWithPlayerPPGInfo(
-            `div[aria-label*="To Score ${metricNumber}+ ${METRIC},"]`,
+          updatePageWithPlayerInfo(
+            `div[aria-label*="${firstVerb}${metricNumber}+ ${secondVerb}${METRIC},"]`,
+            METRIC,
+            ESPN_STAT_IDENTIFIER,
           );
         });
       });
-      updatePageWithPlayerPPGInfo(INITIAL_LOAD_ARIA);
+      updatePageWithPlayerInfo(INITIAL_LOAD_ARIA, METRIC, ESPN_STAT_IDENTIFIER);
     }
 
     counter += 1;
@@ -85,7 +102,11 @@ function processOdds(oddsElement) {
   console.log(oddsElement.innerHTML);
 }
 
-async function updatePageWithPlayerPPGInfo(ariaLabel) {
+async function updatePageWithPlayerInfo(
+  ariaLabel,
+  metricName,
+  ESPN_STAT_IDENTIFIER,
+) {
   var counter = 0;
   const intervalId = setInterval(async () => {
     const playerElements = document.querySelectorAll(ariaLabel);
@@ -93,11 +114,15 @@ async function updatePageWithPlayerPPGInfo(ariaLabel) {
       clearInterval(intervalId);
       [...playerElements].forEach(async (div) => {
         const playerName = div.ariaLabel.split(", ")[1];
-        const ppg = await getPlayerPPG(playerName);
+        const metricAmount = await getPlayerStat(
+          playerName,
+          ESPN_STAT_IDENTIFIER,
+        );
         var playerNameDivParent = div.parentElement.parentElement.parentElement;
         var playerNameDiv =
           playerNameDivParent.children[0].children[1].children[0].children[0];
-        playerNameDiv.innerText = playerName + ": Average ppg " + ppg;
+        playerNameDiv.innerText =
+          playerName + `: Average ${metricName} ` + metricAmount;
       });
     }
     counter += 1;
@@ -108,14 +133,17 @@ async function updatePageWithPlayerPPGInfo(ariaLabel) {
   }, REFRESH_INTERVAL);
 }
 
-async function getPlayerPPG(playerName) {
+async function getPlayerStat(playerName, ESPN_STAT_IDENTIFIER) {
   playerName = playerName.split(" ");
   // Once scraped player, find ESPN id from name and then stats from ID
   var id = await GetESPNIdFromPlayerName(playerName[0], playerName[1]);
   var statsJson = await getStatsFromESPNPlayerID(id);
-  return statsJson["splits"]["categories"][OFFENSE_STATS_INDEX]["stats"][
-    PPG_STATS_INDEX
-  ]["displayValue"];
+  var offenseStats =
+    statsJson["splits"]["categories"][OFFENSE_STATS_INDEX]["stats"];
+  var ppgStats = offenseStats.filter(
+    (stats) => stats["shortDisplayName"] == ESPN_STAT_IDENTIFIER,
+  );
+  return ppgStats[0]["displayValue"];
 }
 
 async function GetESPNIdFromPlayerName(playerFirstName, playerLastName) {

@@ -161,8 +161,13 @@ async function updatePageWithPlayerInfo(
 
 async function getPlayerStat(playerName, ESPN_STAT_IDENTIFIER, STATS_INDEX) {
   playerName = playerName.split(" ");
+  lastName = playerName[1];
+  if (playerName.length == 3) {
+    lastName += " " + playerName[2];
+  }
+
   // Once scraped player, find ESPN id from name and then stats from ID
-  var id = await GetESPNIdFromPlayerName(playerName[0], playerName[1]);
+  var id = await GetESPNIdFromPlayerName(playerName[0], lastName);
   var statsJson = await getStatsFromESPNPlayerID(id);
   var statSplits = statsJson["splits"]["categories"][STATS_INDEX]["stats"];
   var specificStats = statSplits.filter(

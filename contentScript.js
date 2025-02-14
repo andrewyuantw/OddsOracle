@@ -5,6 +5,7 @@ const FIFTEEN_POINTS_ARIA = 'div[aria-label*="To Score 15+ Points,"]';
 const FIFTEEN_POINTS_ARIA_EXPAND = 'div[aria-label*="To Score 15+ Points"]';
 const ONE_MADE_THREE_ARIA = 'div[aria-label*="1+ Made Threes,"]';
 const REBOUNDS_ARIA = 'div[aria-label*="To Record 4+ Rebounds,"]';
+const ASSISTS_ARIA = 'div[aria-label*="To Record 2+ Assists,"]';
 
 // Numberic Constants
 const REFRESH_INTERVAL = 2000;
@@ -22,6 +23,7 @@ const GENERAL_STATS_INDEX = 1;
 const PPG_NAME = "PPG";
 const AVG_THREES_NAME = "A3PM";
 const RPG_NAME = "RPG";
+const APG_NAME = "APG";
 
 // Need to use intervals because FanDuel does not load information instantly
 // Use interval to check if info is loaded periodically
@@ -71,6 +73,16 @@ chrome.runtime.onMessage.addListener(async (obj, sender, response) => {
       RPG_NAME,
       GENERAL_STATS_INDEX,
     );
+  } else if (obj == "PLAYERASSISTS") {
+    processPlayerStats(
+        "To Record ",
+        "",
+        "Assists",
+        [2, 4, 6, 8, 10],
+        ASSISTS_ARIA,
+        APG_NAME,
+        OFFENSE_STATS_INDEX,
+      );
   }
 });
 

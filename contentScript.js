@@ -75,14 +75,14 @@ chrome.runtime.onMessage.addListener(async (obj, sender, response) => {
     );
   } else if (obj == "PLAYERASSISTS") {
     processPlayerStats(
-        "To Record ",
-        "",
-        "Assists",
-        [2, 4, 6, 8, 10],
-        ASSISTS_ARIA,
-        APG_NAME,
-        OFFENSE_STATS_INDEX,
-      );
+      "To Record ",
+      "",
+      "Assists",
+      [2, 4, 6, 8, 10],
+      ASSISTS_ARIA,
+      APG_NAME,
+      OFFENSE_STATS_INDEX,
+    );
   }
 });
 

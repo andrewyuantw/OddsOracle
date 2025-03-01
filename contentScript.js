@@ -16,6 +16,8 @@ const CURRENT_SEASON = 2025;
 const ESPN_GET_ALL_PLAYERS_URL =
   "https://sports.core.api.espn.com/v3/sports/basketball/nba/athletes?limit=20000";
 const ESPN_GET_STATS_FROM_ID_URL = `https://sports.core.api.espn.com/v2/sports/basketball/leagues/nba/seasons/${CURRENT_SEASON}/types/2/athletes/`;
+const ESPN_GET_PLAYER_FROM_ID_URL = `http://sports.core.api.espn.com/v2/sports/basketball/leagues/nba/seasons/2025/athletes/`;
+const ESPN_GET_TEAM_INFO_URL = `http://sports.core.api.espn.com/v2/sports/basketball/leagues/nba/teams/`;
 
 // ESPN API Constants
 const OFFENSE_STATS_INDEX = 2;
@@ -28,6 +30,12 @@ const APG_NAME = "APG";
 // Need to use intervals because FanDuel does not load information instantly
 // Use interval to check if info is loaded periodically
 chrome.runtime.onMessage.addListener(async (obj, sender, response) => {
+  // Get injury report
+  const re = /(?<team1slug>[a-z\-]+)-@-(?<team2slug>[a-z\-]+[a-z])/;
+  const found = window.location.toString().match(re);
+  getInjuryReport(found["groups"]["team1slug"]);
+  getInjuryReport(found["groups"]["team2slug"]);
+  
   if (obj == "MAIN") {
     var counter = 0;
     const intervalId = setInterval(async () => {
@@ -138,6 +146,16 @@ function processOdds(oddsElement) {
   console.log(oddsElement.innerHTML);
 }
 
+async function getInjuryReport(teamSlug) {
+  for (var i = 1; i <= 30; i += 1) {
+    const retrievedTeamSlug = await getTeamSlugFromTeamID(i);
+    if (retrievedTeamSlug == teamSlug) {
+      getTeamInjuriesFromTeamID(i);
+      break;
+    }
+  }
+}
+
 async function updatePageWithPlayerInfo(
   ariaLabel,
   metricName,
@@ -210,4 +228,37 @@ async function getStatsFromESPNPlayerID(id) {
   );
   const json = await resp.json();
   return json;
+}
+
+async function callESPNEndpoint(endpoint) {
+  const options = {
+    method: "GET",
+  };
+  const resp = await fetch(endpoint, options);
+  const json = await resp.json();
+  return json;
+}
+
+async function getTeamSlugFromTeamID(id) {
+  const options = {
+    method: "GET",
+  };
+  const resp = await fetch(ESPN_GET_TEAM_INFO_URL + `${id}`, options);
+  const json = await resp.json();
+  return json["slug"];
+}
+
+async function getTeamInjuriesFromTeamID(id) {
+  const options = {
+    method: "GET",
+  };
+  const resp = await fetch(ESPN_GET_TEAM_INFO_URL + `${id}/injuries`, options);
+  const json = await resp.json();
+  console.log(
+    json["items"].map(async (item) => {
+      injuryObject = await callESPNEndpoint(item["$ref"]);
+      athleteObject = await callESPNEndpoint(injuryObject["athlete"]["$ref"]);
+      return athleteObject["fullName"];
+    }),
+  );
 }

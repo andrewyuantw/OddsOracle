@@ -205,14 +205,30 @@ async function getTeamInjuriesFromTeamID(id) {
   );
 }
 
-/* HELPER FUNCTIONS */
+/* Cache ESPN Response data for faster speed */
+const espnCache = {};
 
+/* HELPER FUNCTIONS */
 async function fetchFromESPN(endpoint) {
+  const now = Date.now();
+  const tenMinutes = 10 * 60 * 1000;
+
+  // If data is cached and not expired, return cached data
+  if (espnCache[endpoint] && now - espnCache[endpoint].timestamp < tenMinutes) {
+    return espnCache[endpoint].data;
+  }
   const options = {
     method: "GET",
   };
   const resp = await fetch(endpoint, options);
   const json = await resp.json();
+
+  // cache the result
+  espnCache[endpoint] = {
+    data: json,
+    timestamp: now,
+  };
+
   return json;
 }
 

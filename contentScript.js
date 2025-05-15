@@ -1,9 +1,9 @@
 // Aria Labels
 const SPREAD_BETTING_ARIA = 'div[aria-label*="Spread Betting,"]';
-const TEN_POINTS_ARIA = createAriaLabel("To Score", "10", "Points");
-const ONE_MADE_THREE_ARIA = createAriaLabel("", "1", "Made Threes");
-const REBOUNDS_ARIA = createAriaLabel("To Record", "4", "Rebounds");
-const ASSISTS_ARIA = createAriaLabel("To Record", "2", "Assists");
+const TEN_POINTS_ARIA = createAriaLabelExpand("To Score ", "20", "Points");
+const ONE_MADE_THREE_ARIA = createAriaLabelExpand("", "4", "Made Threes");
+const REBOUNDS_ARIA = createAriaLabelExpand("To Record ", "6", "Rebounds");
+const ASSISTS_ARIA = createAriaLabelExpand("To Record ", "4", "Assists");
 
 // Numberic Constants
 const REFRESH_INTERVAL = 2000;
@@ -29,7 +29,7 @@ const STAT_MAPPING = {
     ariaLabel: TEN_POINTS_ARIA,
     espnStatName: "PPG",
     index: OFFENSE_STATS_INDEX,
-    levels: [15, 20, 25, 30, 35, 40, 45],
+    levels: [10, 15, 20, 25, 30, 35, 40, 45],
   },
   PLAYERTHREES: {
     verb1: "",
@@ -64,10 +64,12 @@ const STAT_MAPPING = {
 // Use interval to check if info is loaded periodically
 chrome.runtime.onMessage.addListener(async (obj, sender, response) => {
   // Get injury report
+  /*
   const re = /(?<team1slug>[a-z\-]+)-@-(?<team2slug>[a-z\-]+[a-z])/;
   const found = window.location.toString().match(re);
   getInjuryReport(found["groups"]["team1slug"]);
   getInjuryReport(found["groups"]["team2slug"]);
+  */
 
   if (obj == "MAIN") {
     waitForElements(SPREAD_BETTING_ARIA, (element) => {
@@ -86,6 +88,7 @@ chrome.runtime.onMessage.addListener(async (obj, sender, response) => {
 
 function processPlayerStats(statMapping) {
   waitForElements(statMapping.ariaLabel, () => {
+    haveEncounteredFirstDiv = false;
     statMapping.levels.forEach((metricNumber) => {
       aria = createAriaLabel(
         statMapping.verb1,
@@ -99,7 +102,7 @@ function processPlayerStats(statMapping) {
       );
       pointDiv = document.querySelectorAll(aria_expand)[0];
       if (pointDiv) {
-        pointDiv.addEventListener("click", function () {
+        if (!haveEncounteredFirstDiv) {
           updatePageWithPlayerInfo(
             createAriaLabel(
               statMapping.verb1,
@@ -108,10 +111,21 @@ function processPlayerStats(statMapping) {
             ),
             statMapping,
           );
-        });
+          haveEncounteredFirstDiv = true;
+        } else {
+          pointDiv.addEventListener("click", function () {
+            updatePageWithPlayerInfo(
+              createAriaLabel(
+                statMapping.verb1,
+                metricNumber,
+                statMapping.verb2 + statMapping.name,
+              ),
+              statMapping,
+            );
+          });
+        }
       }
     });
-    updatePageWithPlayerInfo(statMapping.ariaLabel, statMapping);
   });
 }
 
@@ -215,9 +229,9 @@ function waitForElements(selector, callback, timeout = 60000) {
 }
 
 function createAriaLabel(action, number, metric) {
-  return `div[aria-label*="${action} ${number}+ ${metric},"]`;
+  return `div[aria-label*="${action}${number}+ ${metric},"]`;
 }
 
 function createAriaLabelExpand(action, number, metric) {
-  return `div[aria-label*="${action} ${number}+ ${metric}"]`;
+  return `div[aria-label*="${action}${number}+ ${metric}"]`;
 }
